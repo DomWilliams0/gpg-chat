@@ -4,6 +4,7 @@
 #include <openssl/ec.h>
 #include <netdb.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 #define error(msg) handle_error(__FILE__, __LINE__, msg)
 
@@ -12,6 +13,11 @@ void handle_error(const char* file, int lineno, const char* msg)
 	printf("\n** %s: %d %s\n", file, lineno, msg);
 	ERR_print_errors_fp(stderr);
 	exit(-1);
+}
+
+bool file_exists(const char *path)
+{
+	return access(path, R_OK) == 0;
 }
 
 SSL_CTX *create_ssl_context(const char *cert, const char *key) 
@@ -26,10 +32,10 @@ SSL_CTX *create_ssl_context(const char *cert, const char *key)
 
 	SSL_CTX_set_ecdh_auto(ctx, 1);
 
-	if (SSL_CTX_use_certificate_file(ctx, cert, SSL_FILETYPE_PEM) < 0)
+	if (!file_exists(cert) || SSL_CTX_use_certificate_file(ctx, cert, SSL_FILETYPE_PEM) < 0)
 		error("Failed to load certificate");
 
-	if (SSL_CTX_use_PrivateKey_file(ctx, key, SSL_FILETYPE_PEM) < 0)
+	if (!file_exists(key) || SSL_CTX_use_PrivateKey_file(ctx, key, SSL_FILETYPE_PEM) < 0)
 		error("Failed to load key");
 
 	return ctx;

@@ -88,7 +88,6 @@ int main()
 	{
 		struct sockaddr_in addr;
 		uint len = sizeof addr;
-		const char reply[] =  "hiya\n";
 
 		puts("Waiting for connections...");
 		int client = accept(sock, (struct sockaddr *) &addr, &len);
@@ -100,14 +99,38 @@ int main()
 		SSL_set_fd(ssl, client);
 
 		if (SSL_accept(ssl) <= 0)
+		{
 			ERR_print_errors_fp(stderr);
-		else
-			SSL_write(ssl, reply, sizeof reply);
+			SSL_free(ssl);
+			close(client);
+			continue;
+		}
+
+		// read all input and print
+		char buf[256];
+		int buf_size = sizeof buf;
+		int byte_count = buf_size;
+		puts("======== begin recv ========");
+		while (true) 
+		{
+			memset(buf, '\0', byte_count);
+			byte_count = SSL_read(ssl, buf, (sizeof buf));
+
+			printf("%s", buf);
+
+			// buffer not filled = end reached
+			if (byte_count < buf_size)
+				break;
+		}
+		puts("\n======== end recv ========");
+
+		// simple reply
+		SSL_write(ssl, "Hiya!\n", 6);
 
 		// close connection
 		SSL_free(ssl);
 		close(client);
-
+		puts("Closed connection");
 	}
 
 	// clean up

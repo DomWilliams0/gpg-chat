@@ -1,24 +1,10 @@
+#include "shared_utils.h"
 #include <openssl/bio.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <openssl/ec.h>
 #include <netdb.h>
 #include <unistd.h>
-#include <stdbool.h>
-
-#define error(msg) handle_error(__FILE__, __LINE__, msg)
-
-void handle_error(const char* file, int lineno, const char* msg)
-{
-	printf("\n** %s: %d %s\n", file, lineno, msg);
-	ERR_print_errors_fp(stderr);
-	exit(-1);
-}
-
-bool file_exists(const char *path)
-{
-	return access(path, R_OK) == 0;
-}
 
 SSL_CTX *create_ssl_context(const char *cert, const char *key) 
 {

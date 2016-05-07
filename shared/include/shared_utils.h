@@ -5,6 +5,7 @@
 #include <stdlib.h>
 
 #define error(msg) handle_error(__FILE__, __LINE__, msg)
+#define UNUSED(x) (void)(x)
 
 void handle_error(const char* file, int lineno, const char* msg);
 

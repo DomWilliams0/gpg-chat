@@ -5,6 +5,9 @@
 #include <openssl/ec.h>
 #include <netdb.h>
 #include <unistd.h>
+#include <linux/limits.h>
+#include <argp.h>
+#include "parser.h"
 
 SSL_CTX *create_ssl_context(const char *cert, const char *key) 
 {
@@ -49,12 +52,12 @@ int create_socket(int port)
 	return s;
 }
 
-int main()
+
+int main(int argc, const char **argv)
 {
-	// TODO: program args
-	int port = 11500;
-	const char *certPath = "/etc/test-certs/cert.pem";
-	const char *keyPath = "/etc/test-certs/key.pem";
+	// load arguments
+	struct user_settings settings;
+	parse_settings(argc, (char **) argv, &settings);
 
 	// init openssl
 	SSL_load_error_strings();
@@ -65,10 +68,10 @@ int main()
 	SSL_CTX *ssl_ctx;
 	SSL *ssl;
 
-	ssl_ctx = create_ssl_context(certPath, keyPath);
-	sock = create_socket(port);
+	ssl_ctx = create_ssl_context(settings.cert_path, settings.key_path);
+	sock = create_socket(settings.port);
 
-	printf("Listening on port %d\n", port);
+	printf("Listening on port %d\n", settings.port);
 
 	while (1)
 	{

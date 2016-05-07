@@ -1,6 +1,16 @@
-cmake_minimum_required (VERSION 2.6)
-project (gpg-chat)
-add_executable(gpg-chat server.c)
+cmake_minimum_required (VERSION 3.5)
+project (GPGChat)
+
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror -Wextra")
+
+set(SOURCE_FILES
+	shared_utils.h
+	shared_utils.c
+	server.c
+	)
+set (EXECUTABLE_NAME server)
+
+add_executable(${EXECUTABLE_NAME} ${SOURCE_FILES})
 
 # Search OpenSSL
 find_package(PkgConfig REQUIRED)
@@ -13,5 +23,4 @@ else()
     # Error; with REQUIRED, pkg_search_module() will throw an error by it's own
 endif()
 
-target_link_libraries(gpg-chat ${OPENSSL_LIBRARIES})
-
+target_link_libraries(${EXECUTABLE_NAME} ${OPENSSL_LIBRARIES})

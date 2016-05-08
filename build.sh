@@ -39,6 +39,16 @@ do_run() {
 	$executable
 }
 
+do_clean() {
+	echo "Clean..."
+	if [ ! -z "$BUILD_DIR" ]; then
+		rm -rf "$BUILD_DIR"
+	else
+		echo "Something went terribly wrong, aborting clean!"
+		exit 2
+	fi
+}
+
 case "$action" in
   "all")
     if do_cmake && do_make ; then
@@ -54,6 +64,9 @@ case "$action" in
   "run")
     do_run
     ;;
+  "clean")
+  	do_clean
+  	;;
    *)
 	echo "Usage: $0 [all <target> | cmake | make | run <target>]"
 	exit 0

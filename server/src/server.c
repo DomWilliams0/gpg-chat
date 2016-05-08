@@ -8,7 +8,7 @@
 #include <linux/limits.h>
 #include <argp.h>
 #include <signal.h>
-#include "parser.h"
+#include "server_parser.h"
 
 static volatile bool server_running = true;
 
@@ -73,11 +73,11 @@ int create_socket(int port)
 }
 
 
-int main(int argc, const char **argv)
+int main(int argc, char **argv)
 {
 	// load arguments
-	struct user_settings settings;
-	parse_settings(argc, (char **) argv, &settings);
+	struct server_settings settings;
+	parse_server_settings(argc, (char **) argv, &settings);
 
 	register_signal_handler();
 

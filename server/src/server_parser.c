@@ -1,14 +1,14 @@
 #include <argp.h>
 #include <stdlib.h>
 #include <string.h>
-#include "parser.h"
+#include "server_parser.h"
 #include "shared_utils.h"
 
 #define ERROR_BAD_INPUT 1
 
 static int parse_opt(int key, char *arg, struct argp_state *state)
 {
-	struct user_settings *settings = state->input;
+	struct server_settings *settings = state->input;
 
 	switch(key)
 	{
@@ -45,7 +45,7 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 	return 0;
 }
 
-void parse_settings(int argc, char **argv, struct user_settings *out)
+void parse_server_settings(int argc, char **argv, struct server_settings *out)
 {
 	struct argp_option options[] =
 	{

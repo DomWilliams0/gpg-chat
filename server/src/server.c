@@ -7,12 +7,35 @@
 #include <unistd.h>
 #include <linux/limits.h>
 #include <argp.h>
+#include <signal.h>
 #include "parser.h"
+
+static volatile bool server_running = true;
+
+void handle_interrupt(int x)
+{
+	UNUSED(x);
+	server_running = false;
+}
+
+/**
+ * Cleanly breaks the server loop on ^C
+ */
+void register_signal_handler()
+{
+	struct sigaction act;
+	act.sa_handler = handle_interrupt;
+	sigaction(SIGINT, &act, NULL);
+}
 
 SSL_CTX *create_ssl_context(const char *cert, const char *key) 
 {
 	SSL_CTX *ctx;
 	const SSL_METHOD *method;
+
+	SSL_load_error_strings();
+	SSL_library_init();
+	OpenSSL_add_all_algorithms();
 
 	method = SSLv23_server_method();
 
@@ -59,10 +82,7 @@ int main(int argc, const char **argv)
 	struct user_settings settings;
 	parse_settings(argc, (char **) argv, &settings);
 
-	// init openssl
-	SSL_load_error_strings();
-	SSL_library_init();
-	OpenSSL_add_all_algorithms();
+	register_signal_handler();
 
 	int sock;
 	SSL_CTX *ssl_ctx;
@@ -73,7 +93,7 @@ int main(int argc, const char **argv)
 
 	printf("Listening on port %d\n", settings.port);
 
-	while (1)
+	while (server_running)
 	{
 		struct sockaddr_in addr;
 		uint len = sizeof addr;
@@ -81,7 +101,14 @@ int main(int argc, const char **argv)
 		puts("Waiting for connections...");
 		int client = accept(sock, (struct sockaddr *) &addr, &len);
 		if (client < 0)
+		{
+			// interrupted, exit cleanly
+			if (!server_running)
+				break;
+
+			// otherwise error
 			error("Failed to accept connection");
+		}
 
 		puts("Client connected");
 		ssl = SSL_new(ssl_ctx);
@@ -123,9 +150,15 @@ int main(int argc, const char **argv)
 	}
 
 	// clean up
+	puts("\nCleaning up");
 	ERR_free_strings();
 	EVP_cleanup();
-	SSL_shutdown(ssl);
-	SSL_free(ssl);
+	if (ssl != NULL)
+	{
+		SSL_shutdown(ssl);
+		SSL_free(ssl);
+	}
+	SSL_CTX_free(ssl_ctx);
 
+	return 0;
 }

@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <gpgme.h>
+#include <string.h>
 #include "gpg.h"
 #include "shared_utils.h"
 
@@ -9,6 +10,7 @@ void gpg_error_check(gpgme_error_t err, const char *msg)
 	if (gpg_err_code(err) != GPG_ERR_NO_ERROR)
 	{
 		fprintf(stderr, "\n** %s %s: %s\n", msg, gpgme_strsource(err), gpgme_strerror(err));
+		// TODO do not crash
 		exit(ERROR_GPGME);
 	}
 }
@@ -114,3 +116,14 @@ bool GPG_encrypt(GPG_CTX *ctx, gpgme_key_t recp[], gpgme_data_t plaintext, gpgme
 	return true;
 }
 
+bool GPG_decrypt(GPG_CTX *ctx, gpgme_data_t ciphertext, gpgme_data_t plaintext)
+{
+	gpgme_error_t err;
+
+	err = gpgme_op_decrypt(ctx->ctx, ciphertext, plaintext);
+	gpg_error_check(err, "Failed to decrypt");
+
+	gpgme_data_seek(plaintext, 0, SEEK_SET);
+
+	return true;
+}

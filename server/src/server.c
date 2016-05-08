@@ -150,11 +150,6 @@ int main(int argc, const char **argv)
 	puts("\nCleaning up");
 	ERR_free_strings();
 	EVP_cleanup();
-	if (ssl != NULL)
-	{
-		SSL_shutdown(ssl);
-		SSL_free(ssl);
-	}
 	SSL_CTX_free(ssl_ctx);
 
 	return 0;

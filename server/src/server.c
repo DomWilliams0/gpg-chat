@@ -31,15 +31,12 @@ void register_signal_handler()
 SSL_CTX *create_ssl_context(const char *cert, const char *key) 
 {
 	SSL_CTX *ctx;
-	const SSL_METHOD *method;
 
 	SSL_load_error_strings();
 	SSL_library_init();
 	OpenSSL_add_all_algorithms();
 
-	method = SSLv23_server_method();
-
-	if ((ctx = SSL_CTX_new(method)) == NULL)
+	if ((ctx = SSL_CTX_new(SERVER_SSL_METHOD())) == NULL)
 		error("Failed to create SSL context");
 
 	SSL_CTX_set_ecdh_auto(ctx, 1);

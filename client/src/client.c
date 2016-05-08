@@ -41,7 +41,7 @@ void init_ssl(SSL_CTX **ctx, SSL **ssl)
  	SSL_library_init();
  	OpenSSL_add_all_algorithms();
 
-	if ((*ctx = SSL_CTX_new(SSLv23_client_method())) == NULL)
+	if ((*ctx = SSL_CTX_new(CLIENT_SSL_METHOD())) == NULL)
 		error("Failed to create SSL context");
 
 	SSL_CTX_set_options(*ctx, SSL_OP_NO_SSLv2);

@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 
 BUILD_DIR=".build"
-action=$1
-target=$2
+action="$1"
+target="$2"
+args="${@:3}"
 
 if [ -z "$action" ]; then
   action="all"
@@ -26,7 +27,8 @@ do_make() {
 
 do_run() {
 	if [ -z "$target" ]; then
-		target="server"
+		echo "Target required (server or client)"
+		exit 1
 	fi
 
   	executable="./$BUILD_DIR/$target/$target"
@@ -36,7 +38,7 @@ do_run() {
 		exit 1
 	fi
 
-	$executable
+	$executable $args
 }
 
 do_clean() {

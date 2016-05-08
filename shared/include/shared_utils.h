@@ -7,6 +7,8 @@
 #define error(msg) handle_error(__FILE__, __LINE__, msg)
 #define UNUSED(x) (void)(x)
 
+#define ERROR_BAD_INPUT 1
+
 extern const struct ssl_method_st* (*SERVER_SSL_METHOD)(void);
 extern const struct ssl_method_st* (*CLIENT_SSL_METHOD)(void);
 

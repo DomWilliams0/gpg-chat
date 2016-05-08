@@ -4,6 +4,7 @@ project (GPGChat)
 set(SOURCE_FILES
 	${SOURCE_FILES}
 	src/client.c
+	src/client_parser.c
 	)
 
 set (EXECUTABLE_NAME client)

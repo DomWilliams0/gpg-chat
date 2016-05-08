@@ -4,8 +4,6 @@
 #include "server_parser.h"
 #include "shared_utils.h"
 
-#define ERROR_BAD_INPUT 1
-
 static int parse_opt(int key, char *arg, struct argp_state *state)
 {
 	struct server_settings *settings = state->input;

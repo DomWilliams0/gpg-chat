@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include "shared_utils.h"
+#include "client_parser.h"
 
 // TODO share similarities with server#create_socket
 int create_socket(char *host, unsigned short port)
@@ -50,11 +51,11 @@ void init_ssl(SSL_CTX **ctx, SSL **ssl)
 }
 
 
-int main() 
+int main(int argc, char **argv) 
 {
-	// TODO load arguments
-	unsigned short port = 11500;
- 	char *host = "localhost";
+	// load arguments
+	struct client_settings settings;
+	parse_client_settings(argc, argv, &settings);
 
  	int sock;
  	SSL_CTX *ssl_ctx;
@@ -62,7 +63,7 @@ int main()
 
  	// init openssl and socket
  	init_ssl(&ssl_ctx, &ssl);
-	sock = create_socket(host, port);
+	sock = create_socket(settings.host, settings.host_port);
 
 	// connect
 	SSL_set_fd(ssl, sock);

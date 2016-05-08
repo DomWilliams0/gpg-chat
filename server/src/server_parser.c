@@ -47,19 +47,19 @@ void parse_server_settings(int argc, char **argv, struct server_settings *out)
 {
 	struct argp_option options[] =
 	{
-		{"port", 'p', "PORT", 0, "Port to listen on", 0},
+		{"port", 'p', "PORT", 0, "Port to listen on (defaults to "DEFAULT_PORT_STR, 0},
 		{"cert", 'c', "CERT_PATH", 0, "Path to TLS certificate", 0},
 		{"key", 'k', "KEY_PATH", 0, "Path to TLS key", 0},
 		{ 0, 0, 0, 0, 0, 0 }
 	};
 
-	char args_doc[] = "<certificate path> <key path> [port=11500]";
+	char args_doc[] = "";
 	char doc[] = "GPGChat server";
 
 	struct argp argp = {options, parse_opt, args_doc, doc, NULL, NULL, NULL};
 
 	// defaults
-	out->port = 11500;
+	out->port = DEFAULT_PORT;
 	out->cert_path = NULL;
 	out->key_path = NULL;
 

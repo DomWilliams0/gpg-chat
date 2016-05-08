@@ -39,7 +39,7 @@ void parse_client_settings(int argc, char **argv, struct client_settings *out)
 	struct argp_option options[] =
 	{
 		{"host", 'h', "HOST", 0, "Remote host to connect to", 0},
-		{"port", 'p', "PORT", 0, "Remove host port", 0},
+		{"port", 'p', "PORT", 0, "Remove host port (defaults to "DEFAULT_PORT_STR, 0},
 		{ 0, 0, 0, 0, 0, 0 }
 	};
 
@@ -49,7 +49,7 @@ void parse_client_settings(int argc, char **argv, struct client_settings *out)
 	struct argp argp = {options, parse_opt, args_doc, doc, NULL, NULL, NULL};
 
 	// defaults
-	out->host_port = 11500;
+	out->host_port = DEFAULT_PORT;
 	out->host = NULL;
 
 	argp_parse(&argp, argc, argv, 0, 0, out);

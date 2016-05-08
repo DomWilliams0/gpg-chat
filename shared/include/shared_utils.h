@@ -9,6 +9,9 @@
 
 #define ERROR_BAD_INPUT 1
 
+#define DEFAULT_PORT 10800
+#define DEFAULT_PORT_STR "10800"
+
 extern const struct ssl_method_st* (*SERVER_SSL_METHOD)(void);
 extern const struct ssl_method_st* (*CLIENT_SSL_METHOD)(void);
 

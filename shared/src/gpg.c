@@ -34,6 +34,8 @@ GPG_CTX *GPG_CTX_new()
 	err = gpgme_new(&ctx->ctx);
 	gpg_error_check(err, "Failed to create GPGme context");
 
+	gpgme_set_armor(ctx->ctx, 1);
+
 	return ctx;
 }
 
@@ -47,7 +49,7 @@ void GPG_CTX_free(GPG_CTX *ctx)
 }
 
 
-gpgme_err_code_t GPG_get_key(GPG_CTX *ctx, char *search_term, gpgme_key_t *out)
+bool GPG_get_key(GPG_CTX *ctx, char *search_term, gpgme_key_t *out)
 {
 	gpg_error_t err;
 	gpgme_key_t key;
@@ -71,8 +73,44 @@ gpgme_err_code_t GPG_get_key(GPG_CTX *ctx, char *search_term, gpgme_key_t *out)
 	if (err_code == GPG_ERR_NO_ERROR)
 	{
 		*out = key;
-		return GPG_ERR_NO_ERROR;
+		return true;
 	}
 
-	return GPG_ERR_EOF;
+	return false;
 }
+
+bool GPG_encrypt(GPG_CTX *ctx, gpgme_key_t recp[], gpgme_data_t plaintext, gpgme_data_t out, bool sign)
+{
+	gpgme_error_t err;
+	gpgme_err_code_t err_code;
+	gpgme_error_t (*op)(gpgme_ctx_t, gpgme_key_t[], gpgme_encrypt_flags_t, gpgme_data_t, gpgme_data_t);
+
+	op = sign ? gpgme_op_encrypt_sign : gpgme_op_encrypt;
+	err = op(ctx->ctx, recp, 0, plaintext, out);
+	err_code = gpg_err_code(err);
+
+	// invalid recipients
+	if (err_code == GPG_ERR_UNUSABLE_PUBKEY)
+	{
+		gpgme_encrypt_result_t res = gpgme_op_encrypt_result(ctx->ctx);
+		gpgme_invalid_key_t bad_key = res->invalid_recipients;
+
+		while(bad_key != NULL)
+		{
+			printf("** Bad recipient %s: %s\n", bad_key->fpr, gpgme_strsource(bad_key->reason));
+			bad_key = bad_key->next;
+		}
+
+		return false;
+	}
+
+	gpg_error_check(err, "Failed to encrypt message");
+
+	// rewind
+	ssize_t n = gpgme_data_seek(out, 0, SEEK_SET);
+	if (n < 0)
+		error("Failed to rewind ciphertext buffer");
+
+	return true;
+}
+

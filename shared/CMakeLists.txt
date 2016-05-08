@@ -4,6 +4,7 @@ project (GPGChat)
 set(SOURCE_FILES
 	${SOURCE_FILES}
 	src/shared_utils.c
+	src/gpg.c
 	)
 
 add_library(${PROJECT_NAME} STATIC ${SOURCE_FILES})
@@ -19,3 +20,13 @@ if( OPENSSL_FOUND )
 else()
     # Error; with REQUIRED, pkg_search_module() will throw an error by it's own
 endif()
+
+# gpgme
+find_library (GPGME gpgme)
+if (GPGME)
+	target_link_libraries(${PROJECT_NAME} gpgme)
+	message (STATUS "Using GPGme ${GPGME}")
+else()
+    message (SEND_ERROR "GPGme is required")
+endif()
+

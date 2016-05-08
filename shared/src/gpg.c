@@ -6,9 +6,9 @@
 void gpg_error_check(gpgme_error_t err, const char *msg)
 {
 	// success
-	if (err != GPG_ERR_NO_ERROR)
+	if (gpg_err_code(err) != GPG_ERR_NO_ERROR)
 	{
-		fprintf(stderr, "\n** %s: %d %s %s: %s\n", __FILE__, __LINE__, msg, gpgme_strsource(err), gpgme_strerror(err));
+		fprintf(stderr, "\n** %s %s: %s\n", msg, gpgme_strsource(err), gpgme_strerror(err));
 		exit(ERROR_GPGME);
 	}
 }
@@ -44,4 +44,35 @@ void GPG_CTX_free(GPG_CTX *ctx)
 
 	// clean up
 	gpgme_release(ctx->ctx);
+}
+
+
+gpgme_err_code_t GPG_get_key(GPG_CTX *ctx, char *search_term, gpgme_key_t *out)
+{
+	gpg_error_t err;
+	gpgme_key_t key;
+	gpgme_keylist_mode_t search_mode;
+	
+	search_mode	= GPGME_KEYLIST_MODE_LOCAL;
+	gpgme_set_keylist_mode(ctx->ctx, search_mode);
+	gpgme_set_protocol(ctx->ctx, GPGME_PROTOCOL_OpenPGP);
+
+	gpg_error_check(gpgme_op_keylist_start(ctx->ctx, search_term, 0), "Failed to start searching keylist");
+
+	err = gpgme_op_keylist_next(ctx->ctx, &key);
+
+	gpgme_err_code_t err_code = gpg_err_code(err);
+
+	if (err_code != GPG_ERR_EOF)
+		gpg_error_check(err, "Failed to get key");
+
+	gpgme_op_keylist_end(ctx->ctx);
+
+	if (err_code == GPG_ERR_NO_ERROR)
+	{
+		*out = key;
+		return GPG_ERR_NO_ERROR;
+	}
+
+	return GPG_ERR_EOF;
 }

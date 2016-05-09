@@ -15,4 +15,7 @@ bool GPG_get_key(GPG_CTX *ctx, char *search_term, gpgme_key_t *out);
 bool GPG_encrypt(GPG_CTX *ctx, gpgme_key_t recp[], gpgme_data_t plaintext, gpgme_data_t out, bool sign);
 
 bool GPG_decrypt(GPG_CTX *ctx, gpgme_data_t ciphertext, gpgme_data_t plaintext);
+
+bool GPG_export(GPG_CTX *ctx, gpgme_key_t key, gpgme_data_t out);
+
 #endif

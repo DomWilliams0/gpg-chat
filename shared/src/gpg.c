@@ -127,3 +127,20 @@ bool GPG_decrypt(GPG_CTX *ctx, gpgme_data_t ciphertext, gpgme_data_t plaintext)
 
 	return true;
 }
+
+bool GPG_export(GPG_CTX *ctx, gpgme_key_t key, gpgme_data_t out)
+{
+	gpg_error_t err;
+
+	gpgme_key_t keys[] = { key, NULL };
+
+	// export key
+	err = gpgme_op_export_keys(ctx->ctx, keys, 0, out);
+	gpg_error_check(err, "Failed to export key");
+
+	ssize_t n = gpgme_data_seek(out, 0, SEEK_SET);
+	if (n < 0)
+		error("Failed to rewind");
+
+	return true;
+}

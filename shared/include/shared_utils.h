@@ -5,9 +5,13 @@
 #include <stdlib.h>
 
 #define error(msg) handle_error(__FILE__, __LINE__, msg)
+#define error_argp(msg) {\
+		fputs(msg, stderr);\
+		exit(argp_err_exit_status);}
+
 #define UNUSED(x) (void)(x)
 
-#define ERROR_BAD_INPUT 1
+#define ERROR_BAD_INPUT 1 // TODO not needed, use argp_error
 #define ERROR_GPGME 2
 
 #define DEFAULT_PORT 10800

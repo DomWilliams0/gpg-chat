@@ -8,10 +8,15 @@ enum client_action { REGISTER, MESSAGE };
 struct client_settings
 {
 	enum client_action action;
-	char **recipients;
 	unsigned short host_port;
-	bool sign_message;
 	char *host;
+
+	// messaging
+	char **recipients;
+	bool sign_message;
+
+	// registering
+	char *key;
 };
 
 

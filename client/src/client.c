@@ -7,6 +7,7 @@
 #include <netdb.h>
 #include "shared_utils.h"
 #include "client_parser.h"
+#include "gpg.h"
 
 // TODO share similarities with server#create_socket
 int create_socket(char *host, unsigned short port)
@@ -57,6 +58,10 @@ int main(int argc, char **argv)
 	struct client_settings settings;
 	parse_client_settings(argc, argv, &settings);
 
+	// init gpg
+	GPG_CTX *gpg_ctx;
+	gpg_ctx = GPG_CTX_new();
+
  	int sock;
  	SSL_CTX *ssl_ctx;
  	SSL *ssl;
@@ -85,6 +90,8 @@ int main(int argc, char **argv)
 	SSL_CTX_free(ssl_ctx);
 	ERR_free_strings();
 	EVP_cleanup();
+
+	GPG_CTX_free(gpg_ctx);
 
 	return 0;
 }

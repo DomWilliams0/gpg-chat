@@ -8,6 +8,7 @@
 #define UNUSED(x) (void)(x)
 
 #define ERROR_BAD_INPUT 1
+#define ERROR_GPGME 2
 
 #define DEFAULT_PORT 10800
 #define DEFAULT_PORT_STR "10800"

@@ -3,6 +3,7 @@
 #include <openssl/err.h>
 #include <openssl/ssl.h>
 #include "shared_utils.h"
+#include "client_actions.h"
 #include "client_parser.h"
 #include "gpg.h"
 

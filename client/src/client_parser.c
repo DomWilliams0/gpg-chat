@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "client_parser.h"
+#include "client_actions.h"
 #include "shared_utils.h"
 
 static bool parse_client_action(char *input, enum client_action *out)
@@ -92,11 +93,4 @@ void parse_client_settings(int argc, char **argv, struct client_settings *out)
 
 	argp_parse(&argp, argc, argv, 0, 0, out);
 	// TODO load config and don't override options
-
-	// validation
-	if (!out->host)
-		error_argp("Host required\n");
-
-	if (out->action == MESSAGE && out->recipients == NULL)
-		error_argp("Recipients required\n");
 }

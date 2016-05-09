@@ -24,4 +24,6 @@ void handle_error(const char* file, int lineno, const char* msg);
 
 bool file_exists(const char *path);
 
+bool request_confirmation(const char *msg);
+
 #endif

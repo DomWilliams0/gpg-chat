@@ -18,3 +18,12 @@ bool file_exists(const char *path)
 {
 	return access(path, R_OK) == 0;
 }
+
+bool request_confirmation(const char *msg)
+{
+	printf("%s (y/N) ", msg);
+	char choice = 'n';
+
+	scanf("%c", &choice);
+	return choice == 'y' || choice == 'Y';
+}

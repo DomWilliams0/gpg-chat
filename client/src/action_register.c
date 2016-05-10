@@ -3,6 +3,7 @@
 #include "client_actions.h"
 #include "client_parser.h"
 #include "shared_utils.h"
+#include "socket.h"
 
 bool export_key(gpgme_data_t *out, char *key_id, GPG_CTX *gpg_ctx)
 {
@@ -49,6 +50,40 @@ bool export_key(gpgme_data_t *out, char *key_id, GPG_CTX *gpg_ctx)
 	return true;
 }
 
+bool send_to_server(gpgme_data_t key, char *host, unsigned short port, GPG_CTX *gpg_ctx)
+{
+	SSL_CTX *ssl_ctx;
+	SSL *ssl;
+	int sock;
+
+	// connect to server
+	init_ssl(&ssl_ctx, &ssl);
+	sock = create_socket(host, port, ssl);
+	UNUSED(sock);
+
+	// C -> S: REG|public key
+	// opcode
+	SSL_write(ssl, OP_REGISTER, OP_LENGTH);
+
+	// public key
+	char buf[PACKET_SIZE];
+	ssize_t n;
+	while (true)
+	{
+		n = gpgme_data_read(key, buf, PACKET_SIZE);
+		SSL_write(ssl, buf, n);
+
+		// eof
+		if (n < PACKET_SIZE)
+			break;
+	}
+
+	// TODO: receive challenge from server
+
+	UNUSED(gpg_ctx);
+
+	return true;
+}
 
 void do_action_register(struct client_settings *settings, GPG_CTX *gpg_ctx)
 {
@@ -60,8 +95,11 @@ void do_action_register(struct client_settings *settings, GPG_CTX *gpg_ctx)
 	if (!succ)
 		return;
 
-	// TODO: send to server
-	puts("TODO: send to server");
+	// send to server
+	succ = send_to_server(key, settings->host, settings->host_port, gpg_ctx);
+	if (!succ)
+		return;
+
 
 
 	return;

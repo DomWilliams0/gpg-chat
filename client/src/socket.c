@@ -9,7 +9,7 @@
 #include "client_parser.h"
 #include "gpg.h"
 
-int create_socket(char *host, unsigned short port)
+int create_socket(char *host, unsigned short port, SSL *ssl)
 {
 	int s;
 
@@ -32,6 +32,10 @@ int create_socket(char *host, unsigned short port)
 	// connect
 	if (connect(s, (struct sockaddr *) &addr, sizeof addr) < 0)
 		error("Failed to connect socket");
+
+	SSL_set_fd(ssl, s);
+	if (SSL_connect(ssl) != 1)
+		error("Failed to connect with SSL");
 
 	return s;
 }

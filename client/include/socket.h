@@ -3,7 +3,7 @@
 #include <openssl/ssl.h>
 
 #define OP_LENGTH     3
-#define OP_REGISTER   "REG"
+#define OP_CONNECT    "CON"
 #define OP_MESSAGE    "MSG"
 #define OP_REQUEST    "REQ"
 

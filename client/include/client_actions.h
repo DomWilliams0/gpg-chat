@@ -3,7 +3,7 @@
 #include "gpg.h"
 #include "client_parser.h"
 
-enum client_action { REGISTER, MESSAGE };
+enum client_action { CONNECT, MESSAGE };
 
 struct client_settings
 {
@@ -15,14 +15,14 @@ struct client_settings
 	char **recipients;
 	bool sign_message;
 
-	// registering
+	// connecting
 	char *key;
 };
 
 
 void handle_action(struct client_settings *settings, GPG_CTX *gpg_ctx);
 
-void do_action_register(struct client_settings *settings, GPG_CTX *gpg_ctx);
+void do_action_connect(struct client_settings *settings, GPG_CTX *gpg_ctx);
 
 void do_action_message(struct client_settings *settings, GPG_CTX *gpg_ctx);
 

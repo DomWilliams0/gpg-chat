@@ -15,8 +15,8 @@ void handle_action(struct client_settings *settings, GPG_CTX *gpg_ctx)
 	void (*action)(struct client_settings *, GPG_CTX *) = NULL;
 	switch(settings->action)
 	{
-		case REGISTER:
-			action = do_action_register;
+		case CONNECT:
+			action = do_action_connect;
 			break;
 		case MESSAGE:
 			action = do_action_message;

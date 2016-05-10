@@ -12,9 +12,9 @@ static bool parse_client_action(char *input, enum client_action *out)
 		*out = MESSAGE;
 		return true;
 	}
-	else if (strcmp("register", input) == 0)
+	else if (strcmp("connect", input) == 0)
 	{
-		*out = REGISTER;
+		*out = CONNECT;
 		return true;
 	}
 
@@ -77,7 +77,7 @@ void parse_client_settings(int argc, char **argv, struct client_settings *out)
 {
 	struct argp_option options[] =
 	{
-		{"action", 'a', "ACTION", 0, "One of \"register\" or \"message\" (default)", 0},
+		{"action", 'a', "ACTION", 0, "One of \"connect\" or \"message\" (default)", 0},
 		{"host", 'h', "HOST", 0, "Remote host to connect to", 0},
 		{"port", 'p', "PORT", 0, "Remove host port (defaults to "DEFAULT_PORT_STR, 0},
 
@@ -85,9 +85,9 @@ void parse_client_settings(int argc, char **argv, struct client_settings *out)
 		{ 0, 0, 0, 0, "Messaging specific parameters:", 1},
 		{"sign", 's', 0, 0, "Sign the message", 1},
 	
-		// registering
+		// connecting
 		{ 0, 0, 0, 0, "Registering specific parameters:", 2},
-		{"key", 'k', "KEY", 0, "Your public key to register", 2},
+		{"key", 'k', "KEY", 0, "Your public key", 2},
 
 		{ 0, 0, 0, 0, 0, 0 }
 	};

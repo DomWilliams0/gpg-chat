@@ -9,7 +9,7 @@ bool export_key(gpgme_data_t *out, char *key_id, GPG_CTX *gpg_ctx)
 {
 	// validation
 	if (key_id == NULL)
-		error_argp("Key to register is required\n");
+		error_argp("Key to connect with is required\n");
 
 	gpgme_key_t key;
 	bool succ;
@@ -20,7 +20,7 @@ bool export_key(gpgme_data_t *out, char *key_id, GPG_CTX *gpg_ctx)
 	if (!succ)
 		error("Could not corresponding key");
 
-	printf("Going to register %s (%s <%s>)\n", 
+	printf("Going to connect with %s (%s <%s>)\n", 
 			key->subkeys->keyid,
 			key->uids->name,
 			key->uids->email
@@ -63,7 +63,7 @@ bool send_to_server(gpgme_data_t key, char *host, unsigned short port, GPG_CTX *
 
 	// C -> S: REG|public key
 	// opcode
-	SSL_write(ssl, OP_REGISTER, OP_LENGTH);
+	SSL_write(ssl, OP_CONNECT, OP_LENGTH);
 
 	// public key
 	char buf[PACKET_SIZE];
@@ -85,7 +85,7 @@ bool send_to_server(gpgme_data_t key, char *host, unsigned short port, GPG_CTX *
 	return true;
 }
 
-void do_action_register(struct client_settings *settings, GPG_CTX *gpg_ctx)
+void do_action_connect(struct client_settings *settings, GPG_CTX *gpg_ctx)
 {
 	gpgme_data_t key;
 	bool succ;

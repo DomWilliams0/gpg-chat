@@ -5,20 +5,21 @@
 #include "shared_utils.h"
 #include "socket.h"
 
-bool export_key(gpgme_data_t *out, char *key_id, GPG_CTX *gpg_ctx)
+int export_key(gpgme_data_t *out, char *key_id, GPG_CTX *gpg_ctx)
 {
 	// validation
 	if (key_id == NULL)
-		error_argp("Key to connect with is required\n");
+		error_ret("Key to connect with is required\n", ERROR_BAD_INPUT);
 
 	gpgme_key_t key;
-	bool succ;
+	int ret;
+	bool confirm;
 	gpgme_error_t err;
 
 	// find key to register
-	succ = GPG_get_key(gpg_ctx, key_id, &key);
-	if (!succ)
-		error("Could not corresponding key");
+	ret = GPG_get_key(gpg_ctx, key_id, &key);
+	if (is_failure(ret))
+		error_ret("Could not corresponding key\n", ERROR_GPGME);
 
 	printf("Going to connect with %s (%s <%s>)\n", 
 			key->subkeys->keyid,
@@ -28,29 +29,29 @@ bool export_key(gpgme_data_t *out, char *key_id, GPG_CTX *gpg_ctx)
 
 	// ensure key is valid
 	if (!key->can_encrypt || key->revoked || key->disabled || key->expired)
-		error("This key cannot be used");
+		error_ret("This key cannot be used\n", ERROR_GPGME);
 
 	// confirm
-	succ = request_confirmation("OK to proceed?");
-	if (!succ)
+	confirm = request_confirmation("OK to proceed?");
+	if (!confirm)
 	{
 		puts("Aborting");
-		return false;
+		return ERROR_USER_ABORT;
 	}
 
 	// get key
 	err = gpgme_data_new(out);
 	if (gpg_err_code(err) != GPG_ERR_NO_ERROR)
-		error("Failed to allocate key buffer");
+		error_ret("Failed to allocate key buffer\n", ERROR_GPGME);
 
-	succ = GPG_export(gpg_ctx, key, *out);
-	if (!succ)
-		error("Failed to export key");
+	ret = GPG_export(gpg_ctx, key, *out);
+	if (is_failure(ret))
+		error_ret("Failed to export key\n", ERROR_GPGME);
 
-	return true;
+	return ERROR_NO_ERROR;
 }
 
-bool send_to_server(gpgme_data_t key, char *host, unsigned short port, GPG_CTX *gpg_ctx)
+int send_to_server(gpgme_data_t key, char *host, unsigned short port, GPG_CTX *gpg_ctx)
 {
 	SSL_CTX *ssl_ctx;
 	SSL *ssl;
@@ -59,7 +60,8 @@ bool send_to_server(gpgme_data_t key, char *host, unsigned short port, GPG_CTX *
 	// connect to server
 	init_ssl(&ssl_ctx, &ssl);
 	sock = create_socket(host, port, ssl);
-	UNUSED(sock);
+	if (sock < 0)
+		return ERROR_SOCKET;
 
 	// C -> S: REG|public key
 	// opcode
@@ -85,23 +87,20 @@ bool send_to_server(gpgme_data_t key, char *host, unsigned short port, GPG_CTX *
 	return true;
 }
 
-void do_action_connect(struct client_settings *settings, GPG_CTX *gpg_ctx)
+int do_action_connect(struct client_settings *settings, GPG_CTX *gpg_ctx)
 {
 	gpgme_data_t key;
-	bool succ;
+	int ret;
 
 	// get key
-	succ = export_key(&key, settings->key, gpg_ctx);
-	if (!succ)
-		return;
+	ret = export_key(&key, settings->key, gpg_ctx);
+	if (is_failure(ret))
+		return ret;
 
 	// send to server
-	succ = send_to_server(key, settings->host, settings->host_port, gpg_ctx);
-	if (!succ)
-		return;
+	ret = send_to_server(key, settings->host, settings->host_port, gpg_ctx);
+	if (ret != ERROR_NO_ERROR)
+		return ret;
 
-
-
-	return;
-
+	return ERROR_NO_ERROR;
 }

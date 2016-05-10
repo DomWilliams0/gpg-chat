@@ -5,6 +5,11 @@
 #include "client_actions.h"
 #include "shared_utils.h"
 
+#define parse_error(msg) {\
+	error_print(msg);\
+	settings->valid = false;\
+	}
+
 static bool parse_client_action(char *input, enum client_action *out)
 {
 	if (strcmp("message", input) == 0)
@@ -25,22 +30,24 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 {
 	struct client_settings *settings = state->input;
 	int port;
-	bool succ;
+
+	// aborted
+	if (!settings->valid)
+		return 0;
 
 	switch(key)
 	{
 		// action
 		case 'a':
-			succ = parse_client_action(arg, &settings->action);
-			if (!succ)
-				argp_error(state, "Invalid action\n");
+			if (!parse_client_action(arg, &settings->action))
+				parse_error("Invalid action\n");
 			break;
 
 		// port
 		case 'p':
 			port = strtol(arg, NULL, 10);
 			if (port < 1 || port > 65535)
-				argp_error(state, "Invalid port\n");
+				parse_error("Invalid port\n");
 
 			settings->host_port = port;
 			break;
@@ -73,7 +80,7 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 	return 0;
 }
 
-void parse_client_settings(int argc, char **argv, struct client_settings *out)
+int parse_client_settings(int argc, char **argv, struct client_settings *out)
 {
 	struct argp_option options[] =
 	{
@@ -102,7 +109,20 @@ void parse_client_settings(int argc, char **argv, struct client_settings *out)
 	out->action = MESSAGE;
 	out->host_port = DEFAULT_PORT;
 	out->sign_message = true;
+	out->valid = true;
 
 	argp_parse(&argp, argc, argv, 0, 0, out);
+
+	// abort if error
+	if (!out->valid)
+		return ERROR_BAD_INPUT;
+
 	// TODO load config and don't override options
+	return ERROR_NO_ERROR;
+}
+
+void print_usage()
+{
+	// defined by cmake
+	printf("Try `%s --help' or `%s --usage' for more information.\n", EXECUTABLE_NAME, EXECUTABLE_NAME);
 }

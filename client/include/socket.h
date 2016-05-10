@@ -9,8 +9,11 @@
 
 #define PACKET_SIZE   1024
 
+/**
+ * Returns socket fd, or <0 if the operation failed
+ */
 int create_socket(char *host, unsigned short port, SSL *ssl);
 
-void init_ssl(SSL_CTX **ctx, SSL **ssl);
+int init_ssl(SSL_CTX **ctx, SSL **ssl);
 
 #endif

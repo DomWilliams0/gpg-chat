@@ -4,16 +4,16 @@
 #include "gpg.h"
 #include "shared_utils.h"
 
-void gpg_error_check(gpgme_error_t err, const char *msg)
-{
-	// success
-	if (gpg_err_code(err) != GPG_ERR_NO_ERROR)
-	{
-		fprintf(stderr, "\n** %s %s: %s\n", msg, gpgme_strsource(err), gpgme_strerror(err));
-		// TODO do not crash
-		exit(ERROR_GPGME);
-	}
-}
+// On error, prints the message and returns
+// with the given code
+#define gpg_error_check_ret(err, msg, ret_code){\
+	if (gpg_err_code(err) != GPG_ERR_NO_ERROR)\
+		error_ret(msg, ret_code);}
+
+// On error, prints the message and returns
+// with ERROR_GPGME
+#define gpg_error_check(err, msg)\
+	gpg_error_check_ret(err, msg, ERROR_GPGME);
 
 struct gpg_context
 {
@@ -21,11 +21,15 @@ struct gpg_context
 };
 
 
-GPG_CTX *GPG_CTX_new()
+int GPG_CTX_new(GPG_CTX **ctx)
 {
-	GPG_CTX *ctx = calloc(1, sizeof(GPG_CTX));
-	if (ctx == NULL)
-		error("Failed to allocate GPG_CTX");
+	GPG_CTX *new_ctx;
+	*ctx = NULL;
+
+	new_ctx = calloc(1, sizeof(GPG_CTX));
+	if (new_ctx == NULL)
+		error_ret("Failed to allocate GPG_CTX\n", ERROR_GPGME);
+	*ctx = new_ctx;
 
 	gpgme_error_t err;
 	const char *version;
@@ -33,12 +37,12 @@ GPG_CTX *GPG_CTX_new()
 	version = gpgme_check_version(NULL);
 	printf("GPGme version: %s\n", version);
 
-	err = gpgme_new(&ctx->ctx);
-	gpg_error_check(err, "Failed to create GPGme context");
+	err = gpgme_new(&new_ctx->ctx);
+	gpg_error_check_ret(err, "Failed to create GPGme context\n", ERROR_GPGME);
 
-	gpgme_set_armor(ctx->ctx, 1);
+	gpgme_set_armor(new_ctx->ctx, 1);
 
-	return ctx;
+	return ERROR_NO_ERROR;
 }
 
 void GPG_CTX_free(GPG_CTX *ctx)
@@ -51,7 +55,7 @@ void GPG_CTX_free(GPG_CTX *ctx)
 }
 
 
-bool GPG_get_key(GPG_CTX *ctx, char *search_term, gpgme_key_t *out)
+int GPG_get_key(GPG_CTX *ctx, char *search_term, gpgme_key_t *out)
 {
 	gpg_error_t err;
 	gpgme_key_t key;
@@ -61,27 +65,27 @@ bool GPG_get_key(GPG_CTX *ctx, char *search_term, gpgme_key_t *out)
 	gpgme_set_keylist_mode(ctx->ctx, search_mode);
 	gpgme_set_protocol(ctx->ctx, GPGME_PROTOCOL_OpenPGP);
 
-	gpg_error_check(gpgme_op_keylist_start(ctx->ctx, search_term, 0), "Failed to start searching keylist");
+	gpg_error_check(gpgme_op_keylist_start(ctx->ctx, search_term, 0), "Failed to start searching keylist\n");
 
 	err = gpgme_op_keylist_next(ctx->ctx, &key);
 
 	gpgme_err_code_t err_code = gpg_err_code(err);
 
 	if (err_code != GPG_ERR_EOF)
-		gpg_error_check(err, "Failed to get key");
+		gpg_error_check(err, "Failed to get key\n");
 
 	gpgme_op_keylist_end(ctx->ctx);
 
 	if (err_code == GPG_ERR_NO_ERROR)
 	{
 		*out = key;
-		return true;
+		return ERROR_NO_ERROR;
 	}
 
-	return false;
+	return ERROR_GPGME;
 }
 
-bool GPG_encrypt(GPG_CTX *ctx, gpgme_key_t recp[], gpgme_data_t plaintext, gpgme_data_t out, bool sign)
+int GPG_encrypt(GPG_CTX *ctx, gpgme_key_t recp[], gpgme_data_t plaintext, gpgme_data_t out, bool sign)
 {
 	gpgme_error_t err;
 	gpgme_err_code_t err_code;
@@ -99,36 +103,36 @@ bool GPG_encrypt(GPG_CTX *ctx, gpgme_key_t recp[], gpgme_data_t plaintext, gpgme
 
 		while(bad_key != NULL)
 		{
-			printf("** Bad recipient %s: %s\n", bad_key->fpr, gpgme_strsource(bad_key->reason));
+			printf("Bad recipient %s: %s\n", bad_key->fpr, gpgme_strsource(bad_key->reason));
 			bad_key = bad_key->next;
 		}
 
-		return false;
+		return ERROR_GPGME;
 	}
 
-	gpg_error_check(err, "Failed to encrypt message");
+	gpg_error_check(err, "Failed to encrypt message\n");
 
 	// rewind
 	ssize_t n = gpgme_data_seek(out, 0, SEEK_SET);
 	if (n < 0)
-		error("Failed to rewind ciphertext buffer");
+		error_ret("Failed to rewind ciphertext buffer\n", ERROR_GPGME);
 
-	return true;
+	return ERROR_NO_ERROR;
 }
 
-bool GPG_decrypt(GPG_CTX *ctx, gpgme_data_t ciphertext, gpgme_data_t plaintext)
+int GPG_decrypt(GPG_CTX *ctx, gpgme_data_t ciphertext, gpgme_data_t plaintext)
 {
 	gpgme_error_t err;
 
 	err = gpgme_op_decrypt(ctx->ctx, ciphertext, plaintext);
-	gpg_error_check(err, "Failed to decrypt");
+	gpg_error_check(err, "Failed to decrypt\n");
 
 	gpgme_data_seek(plaintext, 0, SEEK_SET);
 
-	return true;
+	return ERROR_NO_ERROR;
 }
 
-bool GPG_export(GPG_CTX *ctx, gpgme_key_t key, gpgme_data_t out)
+int GPG_export(GPG_CTX *ctx, gpgme_key_t key, gpgme_data_t out)
 {
 	gpg_error_t err;
 
@@ -136,11 +140,11 @@ bool GPG_export(GPG_CTX *ctx, gpgme_key_t key, gpgme_data_t out)
 
 	// export key
 	err = gpgme_op_export_keys(ctx->ctx, keys, 0, out);
-	gpg_error_check(err, "Failed to export key");
+	gpg_error_check(err, "Failed to export key\n");
 
 	ssize_t n = gpgme_data_seek(out, 0, SEEK_SET);
 	if (n < 0)
-		error("Failed to rewind");
+		error_ret("Failed to rewind\n", ERROR_GPGME);
 
-	return true;
+	return ERROR_NO_ERROR;
 }

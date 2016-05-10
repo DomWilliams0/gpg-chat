@@ -10,6 +10,15 @@
 #include <signal.h>
 #include "server_parser.h"
 
+// TODO: deprecated
+#define error(msg) handle_error(__FILE__, __LINE__, msg)
+static void handle_error(const char* file, int lineno, const char* msg)
+{
+	printf("\n** %s: %d %s\n", file, lineno, msg);
+	ERR_print_errors_fp(stderr);
+	exit(-1);
+}
+
 static volatile bool server_running = true;
 
 void handle_interrupt(int x)

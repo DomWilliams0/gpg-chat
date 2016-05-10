@@ -4,7 +4,8 @@
 
 struct client_settings;
 
-void parse_client_settings(int argc, char **argv, struct client_settings *out);
+int parse_client_settings(int argc, char **argv, struct client_settings *out);
+
+void print_usage();
 
 #endif
-

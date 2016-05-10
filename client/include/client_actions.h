@@ -15,16 +15,18 @@ struct client_settings
 	char **recipients;
 	bool sign_message;
 
+	bool valid;
+
 	// connecting
 	char *key;
 };
 
 
-void handle_action(struct client_settings *settings, GPG_CTX *gpg_ctx);
+int handle_action(struct client_settings *settings, GPG_CTX *gpg_ctx);
 
-void do_action_connect(struct client_settings *settings, GPG_CTX *gpg_ctx);
+int do_action_connect(struct client_settings *settings, GPG_CTX *gpg_ctx);
 
-void do_action_message(struct client_settings *settings, GPG_CTX *gpg_ctx);
+int do_action_message(struct client_settings *settings, GPG_CTX *gpg_ctx);
 
 #endif
 

@@ -12,6 +12,7 @@ set(SOURCE_FILES
 	)
 
 set (EXECUTABLE_NAME client)
+add_definitions(-DEXECUTABLE_NAME="\\"${EXECUTABLE_NAME}\\"")
 
 add_executable(${EXECUTABLE_NAME} ${SOURCE_FILES})
 

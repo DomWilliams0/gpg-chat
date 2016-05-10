@@ -3,12 +3,14 @@
 #include "client_parser.h"
 #include "shared_utils.h"
 
-void do_action_message(struct client_settings *settings, GPG_CTX *gpg_ctx)
+int do_action_message(struct client_settings *settings, GPG_CTX *gpg_ctx)
 {
 	// validation
 	if (settings->recipients == NULL)
-		error_argp("Recipients required\n");
+		error_ret("Recipients required\n", ERROR_BAD_INPUT);
 
 	UNUSED(gpg_ctx);
 	puts("TODO: Messaging...");
+
+	return ERROR_NO_ERROR;
 }

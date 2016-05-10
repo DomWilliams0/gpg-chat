@@ -3,16 +3,15 @@
 #include "client_parser.h"
 #include "shared_utils.h"
 
-
-void handle_action(struct client_settings *settings, GPG_CTX *gpg_ctx)
+int handle_action(struct client_settings *settings, GPG_CTX *gpg_ctx)
 {
 	// global validation
 	if (!settings->host)
-		error_argp("Host required\n");
+		error_ret("Host required\n", ERROR_BAD_INPUT);
 
 	// TODO parse host:port instead of being given separately
 
-	void (*action)(struct client_settings *, GPG_CTX *) = NULL;
+	int (*action)(struct client_settings *, GPG_CTX *) = NULL;
 	switch(settings->action)
 	{
 		case CONNECT:
@@ -22,9 +21,8 @@ void handle_action(struct client_settings *settings, GPG_CTX *gpg_ctx)
 			action = do_action_message;
 			break;
 		default:
-			error_argp("Unimplemented action\n");
-			return;
+			error_ret("Unimplemented action\n", ERROR_BAD_INPUT);
 	}
 
-	action(settings, gpg_ctx);
+	return action(settings, gpg_ctx);
 }

@@ -1,5 +1,6 @@
 #include <argp.h>
 #include <memory.h>
+#include <arpa/inet.h>
 #include "client_actions.h"
 #include "client_parser.h"
 #include "shared_utils.h"
@@ -68,23 +69,23 @@ int send_to_server(gpgme_data_t key, char *host, unsigned short port, GPG_CTX *g
 	SSL_write(ssl, OP_CONNECT, OP_LENGTH);
 
 	// public key
-	char buf[PACKET_SIZE];
-	ssize_t n;
-	while (true)
-	{
-		n = gpgme_data_read(key, buf, PACKET_SIZE);
-		SSL_write(ssl, buf, n);
+	uint64_t key_length_net;
+	size_t key_length_var;
+	char *key_buf;
+	key_buf = gpgme_data_release_and_get_mem(key, &key_length_var);
+	if (key_buf == NULL)
+		error_ret("Failed to copy key data\n", ERROR_GPGME);
 
-		// eof
-		if (n < PACKET_SIZE)
-			break;
-	}
+	// length|data
+	key_length_net = htobe64(key_length_var);
+	SSL_write(ssl, &key_length_net, sizeof key_length_net);
+	SSL_write(ssl, key_buf, key_length_var);
 
 	// TODO: receive challenge from server
 
 	UNUSED(gpg_ctx);
 
-	return true;
+	return ERROR_NO_ERROR;
 }
 
 int do_action_connect(struct client_settings *settings, GPG_CTX *gpg_ctx)

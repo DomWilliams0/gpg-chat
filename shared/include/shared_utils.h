@@ -28,7 +28,7 @@
 		return ret;}
 
 // Error codes
-#define ERROR_NO_ERROR		0
+#define ERROR_NO_ERROR    0
 #define ERROR_BAD_INPUT   1
 #define ERROR_GPGME       2
 #define ERROR_SOCKET      3

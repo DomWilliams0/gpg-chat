@@ -14,37 +14,14 @@
 
 static volatile bool server_running = true;
 
-void handle_interrupt(int x)
-{
-	UNUSED(x);
-	server_running = false;
-}
+void handle_interrupt(int x);
 
 /**
  * Cleanly breaks the server loop on ^C
  */
-void register_signal_handler()
-{
-	struct sigaction act;
-	act.sa_handler = handle_interrupt;
-	sigaction(SIGINT, &act, NULL);
-}
+void register_signal_handler();
 
-int accept_ssl(SSL_CTX *ssl_ctx, SSL **ssl, int client)
-{
-	*ssl = SSL_new(ssl_ctx);
-	SSL_set_fd(*ssl, client);
-
-	if (SSL_accept(*ssl) <= 0)
-	{
-		ERR_print_errors_fp(stderr);
-		SSL_free(*ssl);
-		close(client);
-		return ERROR_SOCKET;
-	}
-
-	return ERROR_NO_ERROR;
-}
+int accept_ssl(SSL_CTX *ssl_ctx, SSL **ssl, int client);
 
 int main(int argc, char **argv)
 {
@@ -123,4 +100,36 @@ GENERAL_CLEAN_UP:
 	EVP_cleanup();
 
 	return ret;
+}
+
+void handle_interrupt(int x)
+{
+	UNUSED(x);
+	server_running = false;
+}
+
+/**
+ * Cleanly breaks the server loop on ^C
+ */
+void register_signal_handler()
+{
+	struct sigaction act;
+	act.sa_handler = handle_interrupt;
+	sigaction(SIGINT, &act, NULL);
+}
+
+int accept_ssl(SSL_CTX *ssl_ctx, SSL **ssl, int client)
+{
+	*ssl = SSL_new(ssl_ctx);
+	SSL_set_fd(*ssl, client);
+
+	if (SSL_accept(*ssl) <= 0)
+	{
+		ERR_print_errors_fp(stderr);
+		SSL_free(*ssl);
+		close(client);
+		return ERROR_SOCKET;
+	}
+
+	return ERROR_NO_ERROR;
 }

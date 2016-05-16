@@ -31,3 +31,11 @@ else()
     message (SEND_ERROR "GPGme is required")
 endif()
 
+# pthreads
+find_library(PTHREADS_LIB pthread)
+if (PTHREADS_LIB)
+	target_link_libraries(${PROJECT_NAME} pthread)
+	message (STATUS "Found pthreads")
+else()
+	message (SEND_ERROR "pthreads is required")
+endif()

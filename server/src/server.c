@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <linux/limits.h>
 #include <argp.h>
+#include <pthread.h>
 #include <signal.h>
 #include "shared_utils.h"
 #include "server_parser.h"
@@ -22,6 +23,36 @@ void handle_interrupt(int x);
 void register_signal_handler();
 
 int accept_ssl(SSL_CTX *ssl_ctx, SSL **ssl, int client);
+
+struct client
+{
+	struct server_settings *settings;
+	SSL *ssl;
+};
+
+void *client_handler(void *client_ctx)
+{
+	struct client *client;
+	char op[OP_LENGTH + 1] = {0};
+	int ret;
+
+	client = (struct client *)client_ctx;
+
+	// read op code and execute action
+	SSL_read(client->ssl, op, OP_LENGTH);
+	ret = handle_server_action(client->settings, client->ssl, op);
+
+	if (is_failure(ret))
+		error_print("Failed to handle server action\n");
+
+	// close connection
+	SSL_shutdown(client->ssl);
+	SSL_free(client->ssl);
+	puts("Closed connection");
+
+	// TODO: return error code instead
+	return NULL;
+}
 
 int main(int argc, char **argv)
 {
@@ -40,7 +71,8 @@ int main(int argc, char **argv)
 	int sock;
 	SSL_CTX *ssl_ctx;
 	SSL *ssl;
-	char op[OP_LENGTH];
+	pthread_t thread_id;
+	struct client client = {&settings, NULL};
 
 	// init ssl
 	if (is_failure(init_ssl(&ssl_ctx, NULL, settings.cert_path, settings.key_path)))
@@ -56,9 +88,8 @@ int main(int argc, char **argv)
 		struct sockaddr_in addr;
 		uint len = sizeof addr;
 
-		puts("Waiting for connections...");
-		int client = accept(sock, (struct sockaddr *) &addr, &len);
-		if (client < 0)
+		int client_sock = accept(sock, (struct sockaddr *) &addr, &len);
+		if (client_sock < 0)
 		{
 			// not clean
 			if (server_running)
@@ -71,22 +102,13 @@ int main(int argc, char **argv)
 		}
 
 		puts("Client connected");
-		if (is_failure(accept_ssl(ssl_ctx, &ssl, client)))
+		if (is_failure(accept_ssl(ssl_ctx, &ssl, client_sock)))
 			continue;
 
-		// read op code and execute action
-		SSL_read(ssl, op, OP_LENGTH);
-
-		ret = handle_server_action(&settings, ssl, op);
-
-		// TODO handle error
-		if (is_failure(ret))
-			error_print("Failed to handle client action\n");
-
-		// close connection
-		SSL_free(ssl);
-		close(client);
-		puts("Closed connection");
+		// spawn thread
+		client.ssl = ssl;
+		if (pthread_create(&thread_id, NULL, client_handler, (void *) &client) < 0)
+			error_print("Failed to spawn client thread\n");
 	}
 
 

@@ -1,4 +1,3 @@
-#include "shared_utils.h"
 #include <openssl/bio.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
@@ -8,7 +7,9 @@
 #include <linux/limits.h>
 #include <argp.h>
 #include <signal.h>
+#include "shared_utils.h"
 #include "server_parser.h"
+#include "socket.h"
 
 // TODO: deprecated
 #define error(msg) handle_error(__FILE__, __LINE__, msg)
@@ -59,29 +60,6 @@ SSL_CTX *create_ssl_context(const char *cert, const char *key)
 	return ctx;
 }
 
-int create_socket(int port)
-{
-	int s;
-
-	if ((s = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-		error("Failed to create socket");
-
-	struct sockaddr_in addr;
-	bzero((char *) &addr, sizeof addr);
-	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = INADDR_ANY;
-	addr.sin_port = htons(port);
-
-	if (bind(s, (struct sockaddr *) &addr, sizeof(addr)) < 0)
-		error("Failed to bind socket");
-
-	if (listen(s, 1) < 0)
-		error("Failed to listen");
-
-	return s;
-}
-
-
 int main(int argc, char **argv)
 {
 	// load arguments
@@ -95,7 +73,7 @@ int main(int argc, char **argv)
 	SSL *ssl;
 
 	ssl_ctx = create_ssl_context(settings.cert_path, settings.key_path);
-	sock = create_socket(settings.port);
+	sock = create_server_socket(settings.port);
 
 	printf("Listening on port %d\n", settings.port);
 

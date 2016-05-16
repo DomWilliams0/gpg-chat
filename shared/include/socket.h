@@ -12,7 +12,9 @@
 /**
  * Returns socket fd, or <0 if the operation failed
  */
-int create_socket(char *host, unsigned short port, SSL *ssl);
+int create_client_socket(char *host, unsigned short port, SSL *ssl);
+
+int create_server_socket(unsigned short port);
 
 int init_ssl(SSL_CTX **ctx, SSL **ssl);
 

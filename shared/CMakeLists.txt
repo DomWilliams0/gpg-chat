@@ -4,6 +4,7 @@ project (GPGChat)
 set(SOURCE_FILES
 	${SOURCE_FILES}
 	src/shared_utils.c
+	src/socket.c
 	src/gpg.c
 	)
 

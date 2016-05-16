@@ -8,7 +8,6 @@ set(SOURCE_FILES
 	src/client_actions.c
 	src/client.c
 	src/client_parser.c
-	src/socket.c
 	)
 
 set (EXECUTABLE_NAME client)

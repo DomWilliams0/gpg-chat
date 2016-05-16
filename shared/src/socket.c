@@ -9,25 +9,35 @@
 #include "client_parser.h"
 #include "gpg.h"
 
-int create_socket(char *host, unsigned short port, SSL *ssl)
+static int create_base_socket(unsigned short port, struct sockaddr_in *addr)
 {
 	int s;
 
 	if ((s = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-		error_ret("Failed to create socket\n", -1);
+		error_ret("Failed to create socket\n", ERROR_SOCKET);
 
+	bzero((char *) addr, sizeof *addr);
+	addr->sin_family = AF_INET;
+	addr->sin_port = htons(port);
+
+	return s;
+}
+
+int create_client_socket(char *host, unsigned short port, SSL *ssl)
+{
+	int s;
 	struct sockaddr_in addr;
 	struct hostent *server;
+
+	if ((s = create_base_socket(port, &addr)) < 0)
+		return s;
 
 	// lookup host
 	server = gethostbyname(host);
 	if (server == NULL)
 		error_ret("Invalid host\n", -1);
 
-	bzero((char *) &addr, sizeof addr);
-	addr.sin_family = AF_INET;
 	bcopy((char *) server->h_addr, (char *) &addr.sin_addr.s_addr, server->h_length);
-	addr.sin_port = htons(port);
 
 	// connect
 	if (connect(s, (struct sockaddr *) &addr, sizeof addr) < 0)
@@ -36,6 +46,25 @@ int create_socket(char *host, unsigned short port, SSL *ssl)
 	SSL_set_fd(ssl, s);
 	if (SSL_connect(ssl) != 1)
 		error_ret("Failed to connect with SSL\n", -1);
+
+	return s;
+}
+
+int create_server_socket(unsigned short port)
+{
+	int s;
+	struct sockaddr_in addr;
+
+	if ((s = create_base_socket(port, &addr)) < 0)
+		return s;
+
+	addr.sin_addr.s_addr = INADDR_ANY;
+
+	if (bind(s, (struct sockaddr *) &addr, sizeof(addr)) < 0)
+		error_ret("Failed to bind socket\n", ERROR_SOCKET);
+
+	if (listen(s, 1) < 0)
+		error_ret("Failed to listen\n", ERROR_SOCKET);
 
 	return s;
 }

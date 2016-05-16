@@ -43,6 +43,7 @@
 #define ERROR_SOCKET      3
 #define ERROR_OPENSSL     4
 #define ERROR_USER_ABORT  5
+#define ERROR_BAD_OP      6
 
 // Checks if the given error code is not a success
 #define is_failure(x) (x != ERROR_NO_ERROR)

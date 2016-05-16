@@ -3,8 +3,8 @@ project (GPGChat)
 
 set(SOURCE_FILES
 	${SOURCE_FILES}
-	src/action_message.c
-	src/action_connect.c
+	src/client_action_message.c
+	src/client_action_connect.c
 	src/client_actions.c
 	src/client.c
 	src/client_parser.c

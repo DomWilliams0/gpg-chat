@@ -10,6 +10,7 @@
 #include "shared_utils.h"
 #include "server_parser.h"
 #include "socket.h"
+#include "server_actions.h"
 
 static volatile bool server_running = true;
 
@@ -29,6 +30,22 @@ void register_signal_handler()
 	sigaction(SIGINT, &act, NULL);
 }
 
+int accept_ssl(SSL_CTX *ssl_ctx, SSL **ssl, int client)
+{
+	*ssl = SSL_new(ssl_ctx);
+	SSL_set_fd(*ssl, client);
+
+	if (SSL_accept(*ssl) <= 0)
+	{
+		ERR_print_errors_fp(stderr);
+		SSL_free(*ssl);
+		close(client);
+		return ERROR_SOCKET;
+	}
+
+	return ERROR_NO_ERROR;
+}
+
 int main(int argc, char **argv)
 {
 	int ret;
@@ -37,7 +54,7 @@ int main(int argc, char **argv)
 	// load arguments
 	ret = parse_server_settings(argc, (char **) argv, &settings);
 
-	if (ret != ERROR_NO_ERROR)
+	if (is_failure(ret))
 	{
 		print_usage;
 		return ret;
@@ -46,6 +63,7 @@ int main(int argc, char **argv)
 	int sock;
 	SSL_CTX *ssl_ctx;
 	SSL *ssl;
+	char op[OP_LENGTH];
 
 	// init ssl
 	if (is_failure(init_ssl(&ssl_ctx, NULL, settings.cert_path, settings.key_path)))
@@ -67,43 +85,26 @@ int main(int argc, char **argv)
 		{
 			// not clean
 			if (server_running)
+			{
 				error_print("Failed to accept client connection\n");
+				ret = ERROR_SOCKET;
+			}
 
 			break;
 		}
 
 		puts("Client connected");
-		ssl = SSL_new(ssl_ctx);
-		SSL_set_fd(ssl, client);
-
-		if (SSL_accept(ssl) <= 0)
-		{
-			ERR_print_errors_fp(stderr);
-			SSL_free(ssl);
-			close(client);
+		if (is_failure(accept_ssl(ssl_ctx, &ssl, client)))
 			continue;
-		}
 
-		// read all input and print
-		char buf[256];
-		int buf_size = sizeof buf;
-		int byte_count = buf_size;
-		puts("======== begin recv ========");
-		while (true) 
-		{
-			memset(buf, '\0', byte_count);
-			byte_count = SSL_read(ssl, buf, (sizeof buf));
+		// read op code and execute action
+		SSL_read(ssl, op, OP_LENGTH);
 
-			printf("%s", buf);
+		ret = handle_server_action(&settings, ssl, op);
 
-			// buffer not filled = end reached
-			if (byte_count < buf_size)
-				break;
-		}
-		puts("\n======== end recv ========");
-
-		// simple reply
-		SSL_write(ssl, "Hiya!\n", 6);
+		// TODO handle error
+		if (is_failure(ret))
+			error_print("Failed to handle client action\n");
 
 		// close connection
 		SSL_free(ssl);
@@ -111,13 +112,15 @@ int main(int argc, char **argv)
 		puts("Closed connection");
 	}
 
-	// clean up
-	SSL_CTX_free(ssl_ctx);
 
 GENERAL_CLEAN_UP:
 	puts("\nCleaning up");
+
+	if (ssl_ctx != NULL)
+		SSL_CTX_free(ssl_ctx);
+
 	ERR_free_strings();
 	EVP_cleanup();
 
-	return 0;
+	return ret;
 }

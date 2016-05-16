@@ -16,6 +16,10 @@ int create_client_socket(char *host, unsigned short port, SSL *ssl);
 
 int create_server_socket(unsigned short port);
 
-int init_ssl(SSL_CTX **ctx, SSL **ssl);
+/**
+ * For server, set ssl to NULL
+ * For client, set cert and key paths to NULL
+ */
+int init_ssl(SSL_CTX **ctx, SSL **ssl, const char *server_cert, const char *server_key);
 
 #endif

@@ -69,17 +69,40 @@ int create_server_socket(unsigned short port)
 	return s;
 }
 
-int init_ssl(SSL_CTX **ctx, SSL **ssl)
+int init_ssl(SSL_CTX **ctx, SSL **ssl, const char *server_cert, const char *server_key)
 {
 	SSL_load_error_strings();
 	SSL_library_init();
 	OpenSSL_add_all_algorithms();
 
-	if ((*ctx = SSL_CTX_new(CLIENT_SSL_METHOD())) == NULL)
+	bool is_server = server_cert != NULL && server_key != NULL;
+
+	if ((*ctx = SSL_CTX_new(is_server ? SERVER_SSL_METHOD() : CLIENT_SSL_METHOD())) == NULL)
 		error_ret("Failed to create SSL context\n", ERROR_OPENSSL);
 
+	SSL_CTX_set_ecdh_auto(*ctx, 1);
 	SSL_CTX_set_options(*ctx, SSL_OP_NO_SSLv2);
 
-	*ssl = SSL_new(*ctx);
+	// server specific
+	if (is_server)
+	{
+		if (!file_exists(server_cert) ||
+				SSL_CTX_use_certificate_file(*ctx, server_cert, SSL_FILETYPE_PEM) < 0)
+			error_ret("Failed to load certificate\n", ERROR_OPENSSL);
+
+		if (!file_exists(server_key) ||
+				SSL_CTX_use_PrivateKey_file(*ctx, server_key, SSL_FILETYPE_PEM) < 0)
+			error_ret("Failed to load key\n", ERROR_OPENSSL);
+
+	}
+
+	// client specific
+	else
+	{
+		*ssl = SSL_new(*ctx);
+		if (*ssl == NULL)
+			error_ret("Failed to create SSL structure\n", ERROR_OPENSSL);
+	}
+
 	return ERROR_NO_ERROR;
 }

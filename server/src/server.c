@@ -31,22 +31,30 @@ void register_signal_handler()
 
 int main(int argc, char **argv)
 {
-	// load arguments
+	int ret;
 	struct server_settings settings;
-	parse_server_settings(argc, (char **) argv, &settings);
 
-	register_signal_handler();
+	// load arguments
+	ret = parse_server_settings(argc, (char **) argv, &settings);
+
+	if (ret != ERROR_NO_ERROR)
+	{
+		print_usage;
+		return ret;
+	}
 
 	int sock;
 	SSL_CTX *ssl_ctx;
 	SSL *ssl;
 
+	// init ssl
 	if (is_failure(init_ssl(&ssl_ctx, NULL, settings.cert_path, settings.key_path)))
 		goto GENERAL_CLEAN_UP;
 
 	sock = create_server_socket(settings.port);
 
 	printf("Listening on port %d\n", settings.port);
+	register_signal_handler();
 
 	while (server_running)
 	{

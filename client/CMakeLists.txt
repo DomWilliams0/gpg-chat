@@ -10,8 +10,8 @@ set(SOURCE_FILES
 	src/client_parser.c
 	)
 
-set (EXECUTABLE_NAME client)
-add_definitions(-DEXECUTABLE_NAME="\\"${EXECUTABLE_NAME}\\"")
+set(EXECUTABLE_NAME client)
+add_definitions(-DEXECUTABLE_NAME=\"${EXECUTABLE_NAME}\")
 
 add_executable(${EXECUTABLE_NAME} ${SOURCE_FILES})
 

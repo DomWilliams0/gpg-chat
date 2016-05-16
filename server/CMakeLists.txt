@@ -7,7 +7,8 @@ set(SOURCE_FILES
 	src/server_parser.c
 	)
 
-set (EXECUTABLE_NAME server)
+set(EXECUTABLE_NAME server)
+add_definitions(-DEXECUTABLE_NAME=\"${EXECUTABLE_NAME}\")
 
 add_executable(${EXECUTABLE_NAME} ${SOURCE_FILES})
 

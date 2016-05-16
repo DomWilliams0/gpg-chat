@@ -27,6 +27,15 @@
 		error_print(msg)\
 		return ret;}
 
+// Prints the given error message and
+// invalidates the local settings struct
+#define parse_error(msg) {\
+	error_print(msg);\
+	settings->valid = false;\
+	}
+
+#define print_usage puts("Try `"EXECUTABLE_NAME" --help' or `"EXECUTABLE_NAME" --usage' for more information.")
+
 // Error codes
 #define ERROR_NO_ERROR		0
 #define ERROR_BAD_INPUT   1
@@ -53,5 +62,7 @@ extern const struct ssl_method_st* (*CLIENT_SSL_METHOD)(void);
 bool file_exists(const char *path);
 
 bool request_confirmation(const char *msg);
+
+int parse_port(char *s);
 
 #endif

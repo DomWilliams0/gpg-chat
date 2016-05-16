@@ -20,3 +20,13 @@ bool request_confirmation(const char *msg)
 	scanf("%c", &choice);
 	return choice == 'y' || choice == 'Y';
 }
+
+int parse_port(char *s)
+{
+	int i;
+	i = strtol(s, NULL, 10);
+	if (i < 1 || i > 65535)
+		return ERROR_BAD_INPUT;
+
+	return i;
+}

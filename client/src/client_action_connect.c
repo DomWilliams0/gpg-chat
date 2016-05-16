@@ -59,8 +59,8 @@ int send_to_server(gpgme_data_t key, char *host, unsigned short port, GPG_CTX *g
 	int sock;
 
 	// connect to server
-	init_ssl(&ssl_ctx, &ssl);
-	sock = create_socket(host, port, ssl);
+	init_ssl(&ssl_ctx, &ssl, NULL, NULL);
+	sock = create_client_socket(host, port, ssl);
 	if (sock < 0)
 		return ERROR_SOCKET;
 

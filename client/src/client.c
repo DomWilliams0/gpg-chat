@@ -16,7 +16,7 @@ int main(int argc, char **argv)
 	ret = parse_client_settings(argc, argv, &settings);
 	if (ret != ERROR_NO_ERROR)
 	{
-		print_usage();
+		print_usage;
 		return ret;
 	}
 
@@ -30,7 +30,7 @@ int main(int argc, char **argv)
 	ret = handle_action(&settings, gpg_ctx);
 
 	if (ret == ERROR_BAD_INPUT)
-		print_usage();
+		print_usage;
 
 	else if (ret == ERROR_USER_ABORT)
 		ret = ERROR_NO_ERROR;

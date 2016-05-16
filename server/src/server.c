@@ -1,4 +1,3 @@
-#include "shared_utils.h"
 #include <openssl/bio.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
@@ -7,19 +6,123 @@
 #include <unistd.h>
 #include <linux/limits.h>
 #include <argp.h>
+#include <pthread.h>
 #include <signal.h>
+#include "shared_utils.h"
 #include "server_parser.h"
-
-// TODO: deprecated
-#define error(msg) handle_error(__FILE__, __LINE__, msg)
-static void handle_error(const char* file, int lineno, const char* msg)
-{
-	printf("\n** %s: %d %s\n", file, lineno, msg);
-	ERR_print_errors_fp(stderr);
-	exit(-1);
-}
+#include "socket.h"
+#include "server_actions.h"
 
 static volatile bool server_running = true;
+
+void handle_interrupt(int x);
+
+/**
+ * Cleanly breaks the server loop on ^C
+ */
+void register_signal_handler();
+
+int accept_ssl(SSL_CTX *ssl_ctx, SSL **ssl, int client);
+
+struct client
+{
+	struct server_settings *settings;
+	SSL *ssl;
+};
+
+void *client_handler(void *client_ctx)
+{
+	struct client *client;
+	char op[OP_LENGTH + 1] = {0};
+	int ret;
+
+	client = (struct client *)client_ctx;
+
+	// read op code and execute action
+	SSL_read(client->ssl, op, OP_LENGTH);
+	ret = handle_server_action(client->settings, client->ssl, op);
+
+	if (is_failure(ret))
+		error_print("Failed to handle server action\n");
+
+	// close connection
+	SSL_shutdown(client->ssl);
+	SSL_free(client->ssl);
+	puts("Closed connection");
+
+	// TODO: return error code instead
+	return NULL;
+}
+
+int main(int argc, char **argv)
+{
+	int ret;
+	struct server_settings settings;
+
+	// load arguments
+	ret = parse_server_settings(argc, (char **) argv, &settings);
+
+	if (is_failure(ret))
+	{
+		print_usage;
+		return ret;
+	}
+
+	int sock;
+	SSL_CTX *ssl_ctx;
+	SSL *ssl;
+	pthread_t thread_id;
+	struct client client = {&settings, NULL};
+
+	// init ssl
+	if (is_failure(init_ssl(&ssl_ctx, NULL, settings.cert_path, settings.key_path)))
+		goto GENERAL_CLEAN_UP;
+
+	sock = create_server_socket(settings.port);
+
+	printf("Listening on port %d\n", settings.port);
+	register_signal_handler();
+
+	while (server_running)
+	{
+		struct sockaddr_in addr;
+		uint len = sizeof addr;
+
+		int client_sock = accept(sock, (struct sockaddr *) &addr, &len);
+		if (client_sock < 0)
+		{
+			// not clean
+			if (server_running)
+			{
+				error_print("Failed to accept client connection\n");
+				ret = ERROR_SOCKET;
+			}
+
+			break;
+		}
+
+		puts("Client connected");
+		if (is_failure(accept_ssl(ssl_ctx, &ssl, client_sock)))
+			continue;
+
+		// spawn thread
+		client.ssl = ssl;
+		if (pthread_create(&thread_id, NULL, client_handler, (void *) &client) < 0)
+			error_print("Failed to spawn client thread\n");
+	}
+
+
+GENERAL_CLEAN_UP:
+	puts("\nCleaning up");
+
+	if (ssl_ctx != NULL)
+		SSL_CTX_free(ssl_ctx);
+
+	ERR_free_strings();
+	EVP_cleanup();
+
+	return ret;
+}
 
 void handle_interrupt(int x)
 {
@@ -37,129 +140,18 @@ void register_signal_handler()
 	sigaction(SIGINT, &act, NULL);
 }
 
-SSL_CTX *create_ssl_context(const char *cert, const char *key) 
+int accept_ssl(SSL_CTX *ssl_ctx, SSL **ssl, int client)
 {
-	SSL_CTX *ctx;
+	*ssl = SSL_new(ssl_ctx);
+	SSL_set_fd(*ssl, client);
 
-	SSL_load_error_strings();
-	SSL_library_init();
-	OpenSSL_add_all_algorithms();
-
-	if ((ctx = SSL_CTX_new(SERVER_SSL_METHOD())) == NULL)
-		error("Failed to create SSL context");
-
-	SSL_CTX_set_ecdh_auto(ctx, 1);
-
-	if (!file_exists(cert) || SSL_CTX_use_certificate_file(ctx, cert, SSL_FILETYPE_PEM) < 0)
-		error("Failed to load certificate");
-
-	if (!file_exists(key) || SSL_CTX_use_PrivateKey_file(ctx, key, SSL_FILETYPE_PEM) < 0)
-		error("Failed to load key");
-
-	return ctx;
-}
-
-int create_socket(int port)
-{
-	int s;
-
-	if ((s = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-		error("Failed to create socket");
-
-	struct sockaddr_in addr;
-	bzero((char *) &addr, sizeof addr);
-	addr.sin_family = AF_INET;
-	addr.sin_addr.s_addr = INADDR_ANY;
-	addr.sin_port = htons(port);
-
-	if (bind(s, (struct sockaddr *) &addr, sizeof(addr)) < 0)
-		error("Failed to bind socket");
-
-	if (listen(s, 1) < 0)
-		error("Failed to listen");
-
-	return s;
-}
-
-
-int main(int argc, char **argv)
-{
-	// load arguments
-	struct server_settings settings;
-	parse_server_settings(argc, (char **) argv, &settings);
-
-	register_signal_handler();
-
-	int sock;
-	SSL_CTX *ssl_ctx;
-	SSL *ssl;
-
-	ssl_ctx = create_ssl_context(settings.cert_path, settings.key_path);
-	sock = create_socket(settings.port);
-
-	printf("Listening on port %d\n", settings.port);
-
-	while (server_running)
+	if (SSL_accept(*ssl) <= 0)
 	{
-		struct sockaddr_in addr;
-		uint len = sizeof addr;
-
-		puts("Waiting for connections...");
-		int client = accept(sock, (struct sockaddr *) &addr, &len);
-		if (client < 0)
-		{
-			// interrupted, exit cleanly
-			if (!server_running)
-				break;
-
-			// otherwise error
-			error("Failed to accept connection");
-		}
-
-		puts("Client connected");
-		ssl = SSL_new(ssl_ctx);
-		SSL_set_fd(ssl, client);
-
-		if (SSL_accept(ssl) <= 0)
-		{
-			ERR_print_errors_fp(stderr);
-			SSL_free(ssl);
-			close(client);
-			continue;
-		}
-
-		// read all input and print
-		char buf[256];
-		int buf_size = sizeof buf;
-		int byte_count = buf_size;
-		puts("======== begin recv ========");
-		while (true) 
-		{
-			memset(buf, '\0', byte_count);
-			byte_count = SSL_read(ssl, buf, (sizeof buf));
-
-			printf("%s", buf);
-
-			// buffer not filled = end reached
-			if (byte_count < buf_size)
-				break;
-		}
-		puts("\n======== end recv ========");
-
-		// simple reply
-		SSL_write(ssl, "Hiya!\n", 6);
-
-		// close connection
-		SSL_free(ssl);
+		ERR_print_errors_fp(stderr);
+		SSL_free(*ssl);
 		close(client);
-		puts("Closed connection");
+		return ERROR_SOCKET;
 	}
 
-	// clean up
-	puts("\nCleaning up");
-	ERR_free_strings();
-	EVP_cleanup();
-	SSL_CTX_free(ssl_ctx);
-
-	return 0;
+	return ERROR_NO_ERROR;
 }

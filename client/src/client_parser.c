@@ -5,11 +5,6 @@
 #include "client_actions.h"
 #include "shared_utils.h"
 
-#define parse_error(msg) {\
-	error_print(msg);\
-	settings->valid = false;\
-	}
-
 static bool parse_client_action(char *input, enum client_action *out)
 {
 	if (strcmp("message", input) == 0)
@@ -45,8 +40,8 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 
 		// port
 		case 'p':
-			port = strtol(arg, NULL, 10);
-			if (port < 1 || port > 65535)
+			port = parse_port(arg);
+			if (is_failure(port))
 				parse_error("Invalid port\n");
 
 			settings->host_port = port;
@@ -121,8 +116,3 @@ int parse_client_settings(int argc, char **argv, struct client_settings *out)
 	return ERROR_NO_ERROR;
 }
 
-void print_usage()
-{
-	// defined by cmake
-	printf("Try `%s --help' or `%s --usage' for more information.\n", EXECUTABLE_NAME, EXECUTABLE_NAME);
-}
